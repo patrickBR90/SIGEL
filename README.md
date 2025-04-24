@@ -8,6 +8,10 @@ instalação do software:
 
 instale: python , MySQL.
 
+Python: https://www.python.org/downloads/
+
+MySQL: https://dev.mysql.com/downloads/installer/
+
 
 configure o MySQL com MySQL workbench e abra o arquivo “NEWsgi.sql”
 
@@ -27,6 +31,7 @@ no desktop: faça o download do repositório e coloque os arquivos na raiz do di
 crie um arquivo de texto chamado .env
 
 e coloque:
+
 MYSQL_HOST=localhost
 
 MYSQL_USER=YYYY
@@ -37,7 +42,7 @@ MYSQL_DATABASE=sig
 
 
 
-Y= usuario do MySQL admin
+Y= usuario do MySQL admin; 
 X=Senha do MySQL admin
 
 
