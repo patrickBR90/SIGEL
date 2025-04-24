@@ -21,7 +21,7 @@ cd SIGEL
 python -m venv venv
 
 
-e faça o download do repositório e coloque os arquivos na raiz do diretório( /SIGEL)
+no desktop: faça o download do repositório e coloque os arquivos na raiz do diretório( /SIGEL)
 
 
 crie um arquivo de texto chamado .env
