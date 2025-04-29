@@ -10,7 +10,7 @@ siga as intruções em install.txt
 uso do software:
 
 Login do usuario com senha
-![faça o loging](https://github.com/patrickBR90/SIGEL/blob/main/images/Login%20-%20Sistema%20SIGEL.png)
+![](https://github.com/patrickBR90/SIGEL/blob/main/images/Login%20-%20Sistema%20SIGEL.png)
 
 pagina inicial:
 
@@ -20,7 +20,9 @@ Adicionar Alunos:
 
 ![](https://github.com/patrickBR90/SIGEL/blob/main/images/Gerenciar%20Alunos.png)
 
-Adicione o nome do aluno e no número coloque a sala e número do aluno
+clique "novo aluno"
+
+Adicione o nome do aluno e turma/serie.
 
 após isso clique em Cadastrar.
 
@@ -28,7 +30,9 @@ Adicionar Livro:
 
 ![](https://github.com/patrickBR90/SIGEL/blob/main/images/Gerenciar%20Livros.png)
 
-Adicione o nome do livro
+clique "novo livro"
+
+Adicione o nome e autor do livro.
 
 após isso clique em Cadastrar.
 
@@ -42,7 +46,9 @@ selecione a data de devolução com o símbolo 📅
 
 e clique Registrar empréstimo .
 
+![](https://github.com/patrickBR90/SIGEL/blob/main/images/empreati.png)
 
+Monitore e gerencie os empréstimos em andamento
 
 
 
