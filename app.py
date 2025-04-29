@@ -86,7 +86,37 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Contar total de livros
+    cursor.execute("SELECT COUNT(*) AS total FROM livros")
+    total_livros = cursor.fetchone()['total']
+    
+    # Contar total de alunos
+    cursor.execute("SELECT COUNT(*) AS total FROM alunos")
+    total_alunos = cursor.fetchone()['total']
+    
+    # Contar total de empréstimos ativos
+    cursor.execute("SELECT COUNT(*) AS total FROM emprestimos")
+    total_emprestimos = cursor.fetchone()['total']
+    
+    # Contar empréstimos prestes a vencer e atrasados
+    hoje = datetime.now().date()
+    prestes_a_vencer_limite = hoje + timedelta(days=3)
+    
+    cursor.execute("SELECT COUNT(*) AS total FROM emprestimos WHERE data_devolucao <= %s AND data_devolucao >= %s",
+                   (prestes_a_vencer_limite, hoje))
+    prestes_a_vencer = cursor.fetchone()['total']
+    
+    cursor.execute("SELECT COUNT(*) AS total FROM emprestimos WHERE data_devolucao < %s", (hoje,))
+    atrasados = cursor.fetchone()['total']
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('index.html', total_livros=total_livros, total_alunos=total_alunos,
+                          total_emprestimos=total_emprestimos, prestes_a_vencer=prestes_a_vencer, atrasados=atrasados)
 
 # Gerenciamento de Alunos
 @app.route('/alunos', methods=['GET', 'POST'])
@@ -98,9 +128,12 @@ def alunos():
     if request.method == 'POST':
         numero = request.form['numero']
         nome = request.form['nome']
+        serie = request.form.get('serie', '')
+        data_cadastro = datetime.now().strftime('%Y-%m-%d')
         
         try:
-            cursor.execute("INSERT INTO alunos (numero, nome) VALUES (%s, %s)", (numero, nome))
+            cursor.execute("INSERT INTO alunos (numero, nome, serie, data_cadastro) VALUES (%s, %s, %s, %s)", 
+                          (numero, nome, serie, data_cadastro))
             conn.commit()
             flash('Aluno cadastrado com sucesso!', 'success')
         except mysql.connector.Error as err:
@@ -111,6 +144,37 @@ def alunos():
     cursor.close()
     conn.close()
     return render_template('alunos.html', alunos=alunos)
+
+@app.route('/alunos/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_aluno(id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        numero = request.form['numero']
+        nome = request.form['nome']
+        serie = request.form.get('serie', '')
+        
+        try:
+            cursor.execute("UPDATE alunos SET numero = %s, nome = %s, serie = %s WHERE id = %s",
+                          (numero, nome, serie, id))
+            conn.commit()
+            flash('Aluno atualizado com sucesso!', 'success')
+            return redirect(url_for('alunos'))
+        except mysql.connector.Error as err:
+            flash(f'Erro: {err}', 'danger')
+    
+    cursor.execute("SELECT * FROM alunos WHERE id = %s", (id,))
+    aluno = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not aluno:
+        flash('Aluno não encontrado.', 'danger')
+        return redirect(url_for('alunos'))
+    
+    return render_template('alunos.html', alunos=[], edit_aluno=aluno)
 
 @app.route('/alunos/delete/<int:id>')
 @login_required
@@ -136,9 +200,13 @@ def livros():
     
     if request.method == 'POST':
         titulo = request.form['titulo']
+        autor = request.form.get('autor', '')
+        data_cadastro = datetime.now().strftime('%Y-%m-%d')
+        status = 'Disponível'
         
         try:
-            cursor.execute("INSERT INTO livros (titulo) VALUES (%s)", (titulo,))
+            cursor.executeeuro("INSERT INTO livros (titulo, autor, data_cadastro, status) VALUES (%s, %s, %s, %s)", 
+                          (titulo, autor, data_cadastro, status))
             conn.commit()
             flash('Livro cadastrado com sucesso!', 'success')
         except mysql.connector.Error as err:
@@ -149,6 +217,36 @@ def livros():
     cursor.close()
     conn.close()
     return render_template('livros.html', livros=livros)
+
+@app.route('/livros/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_livro(id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        titulo = request.form['titulo']
+        autor = request.form.get('autor', '')
+        
+        try:
+            cursor.execute("UPDATE livros SET titulo = %s, autor = %s WHERE id = %s",
+                          (titulo, autor, id))
+            conn.commit()
+            flash('Livro atualizado com sucesso!', 'success')
+            return redirect(url_for('livros'))
+        except mysql.connector.Error as err:
+            flash(f'Erro: {err}', 'danger')
+    
+    cursor.execute("SELECT * FROM livros WHERE id = %s", (id,))
+    livro = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not livro:
+        flash('Livro não encontrado.', 'danger')
+        return redirect(url_for('livros'))
+    
+    return render_template('livros.html', livros=[], edit_livro=livro)
 
 @app.route('/livros/delete/<int:id>')
 @login_required
@@ -178,28 +276,120 @@ def emprestimos():
         data_devolucao = request.form['data_devolucao']
         data_emprestimo = datetime.now().strftime('%Y-%m-%d')
         
-        try:
-            cursor.execute(
-                "INSERT INTO emprestimos (aluno_id, livro_id, data_emprestimo, data_devolucao) VALUES (%s, %s, %s, %s)",
-                (aluno_id, livro_id, data_emprestimo, data_devolucao)
-            )
-            conn.commit()
-            flash('Empréstimo registrado com sucesso!', 'success')
-        except mysql.connector.Error as err:
-            flash(f'Erro: {err}', 'danger')
+        # Verificar se o livro está disponível
+        cursor.execute("SELECT status FROM livros WHERE id = %s", (livro_id,))
+        livro = cursor.fetchone()
         
-    cursor.execute("SELECT e.id, a.nome, a.numero, l.titulo, e.data_emprestimo, e.data_devolucao "
+        if not livro:
+            flash('Livro não encontrado.', 'danger')
+        elif livro['status'] != 'Disponível':
+            flash('Este livro já está emprestado. Aguarde a devolução para emprestá-lo novamente.', 'danger')
+        else:
+            try:
+                cursor.execute(
+                    "INSERT INTO emprestimos (aluno_id, livro_id, data_emprestimo, data_devolucao) VALUES (%s, %s, %s, %s)",
+                    (aluno_id, livro_id, data_emprestimo, data_devolucao)
+                )
+                cursor.execute("UPDATE livros SET status = 'Emprestado' WHERE id = %s", (livro_id,))
+                conn.commit()
+                flash('Empréstimo registrado com sucesso!', 'success')
+            except mysql.connector.Error as err:
+                flash(f'Erro: {err}', 'danger')
+        
+    cursor.execute("SELECT e.id, a.nome, a.numero, a.serie, l.titulo, e.data_emprestimo, e.data_devolucao "
                    "FROM emprestimos e JOIN alunos a ON e.aluno_id = a.id JOIN livros l ON e.livro_id = l.id")
     emprestimos = cursor.fetchall()
     
     cursor.execute("SELECT * FROM alunos")
     alunos = cursor.fetchall()
-    cursor.execute("SELECT * FROM livros")
+    # Carregar apenas livros disponíveis para o formulário
+    cursor.execute("SELECT * FROM livros WHERE status = 'Disponível'")
     livros = cursor.fetchall()
     
     cursor.close()
     conn.close()
     return render_template('emprestimos.html', emprestimos=emprestimos, alunos=alunos, livros=livros)
+
+@app.route('/emprestimos/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_emprestimo(id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        aluno_id = request.form['aluno_id']
+        livro_id = request.form['livro_id']
+        data_devolucao = request.form['data_devolucao']
+        
+        # Verificar o status do livro
+        cursor.execute("SELECT status FROM livros WHERE id = %s", (livro_id,))
+        livro = cursor.fetchone()
+        
+        if not livro:
+            flash('Livro não encontrado.', 'danger')
+        elif livro['status'] != 'Disponível':
+            # Verificar se o livro já está associado a este empréstimo
+            cursor.execute("SELECT livro_id FROM emprestimos WHERE id = %s", (id,))
+            current_livro = cursor.fetchone()
+            if current_livro['livro_id'] != int(livro_id):
+                flash('Este livro já está emprestado. Escolha outro livro ou edite o empréstimo existente.', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('edit_emprestimo', id=id))
+        
+        try:
+            # Atualizar o empréstimo
+            cursor.execute("UPDATE emprestimos SET aluno_id = %s, livro_id = %s, data_devolucao = %s WHERE id = %s",
+                          (aluno_id, livro_id, data_devolucao, id))
+            # Atualizar o status do livro (se o livro foi alterado)
+            cursor.execute("UPDATE livros SET status = 'Disponível' WHERE id = %s", (current_livro['livro_id'],))
+            cursor.execute("UPDATE livros SET status = 'Emprestado' WHERE id = %s", (livro_id,))
+            conn.commit()
+            flash('Empréstimo atualizado com sucesso!', 'success')
+            return redirect(url_for('emprestimos'))
+        except mysql.connector.Error as err:
+            flash(f'Erro: {err}', 'danger')
+    
+    cursor.execute("SELECT e.id, a.id as aluno_id, a.nome, a.numero, a.serie, l.id as livro_id, l.titulo, e.data_emprestimo, e.data_devolucao "
+                   "FROM emprestimos e JOIN alunos a ON e.aluno_id = a.id JOIN livros l ON e.livro_id = l.id WHERE e.id = %s", (id,))
+    emprestimo = cursor.fetchone()
+    
+    cursor.execute("SELECT * FROM alunos")
+    alunos = cursor.fetchall()
+    cursor.execute("SELECT * FROM livros WHERE status = 'Disponível' OR id = %s", (emprestimo['livro_id'],))
+    livros = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    if not emprestimo:
+        flash('Empréstimo não encontrado.', 'danger')
+        return redirect(url_for('emprestimos'))
+    
+    return render_template('emprestimos.html', emprestimos=[], edit_emprestimo=emprestimo, alunos=alunos, livros=livros)
+
+@app.route('/emprestimos/devolver/<int:id>')
+@login_required
+def devolver_emprestimo(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Obter o livro associado ao empréstimo
+        cursor.execute("SELECT livro_id FROM emprestimos WHERE id = %s", (id,))
+        livro = cursor.fetchone()
+        if livro:
+            livro_id = livro[0]
+            # Atualizar o status do livro para Disponível
+            cursor.execute("UPDATE livros SET status = 'Disponível' WHERE id = %s", (livro_id,))
+        # Remover o empréstimo
+        cursor.execute("DELETE FROM emprestimos WHERE id = %s", (id,))
+        conn.commit()
+        flash('Livro devolvido com sucesso!', 'success')
+    except mysql.connector.Error as err:
+        flash(f'Erro: {err}', 'danger')
+    cursor.close()
+    conn.close()
+    return redirect(url_for('emprestimos_ativos'))
 
 @app.route('/emprestimos/delete/<int:id>')
 @login_required
@@ -216,8 +406,41 @@ def delete_emprestimo(id):
     conn.close()
     return redirect(url_for('emprestimos'))
 
-# Rota para criar um usuário inicial (opcional, para testes)
-@app.route('/setup')
+# Empréstimos Ativos
+@app.route('/emprestimos_ativos')
+@login_required
+def emprestimos_ativos():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Carregar todos os empréstimos ativos
+    cursor.execute("SELECT e.id, a.nome, a.numero, a.serie, l.titulo, e.data_emprestimo, e.data_devolucao "
+                   "FROM emprestimos e JOIN alunos a ON e.aluno_id = a.id JOIN livros l ON e.livro_id = l.id")
+    emprestimos = cursor.fetchall()
+    
+    # Calcular total, prestes a vencer e atrasados
+    hoje = datetime.now().date()
+    prestes_a_vencer_limite = hoje + timedelta(days=3)
+    
+    total_emprestimos = len(emprestimos)
+    prestes_a_vencer = 0
+    atrasados = 0
+    
+    # Adicionar flags para cada empréstimo
+    for emprestimo in emprestimos:
+        data_devolucao = emprestimo['data_devolucao']  # Já é um objeto datetime.date
+        emprestimo['atrasado'] = data_devolucao < hoje
+        emprestimo['prestes_a_vencer'] = hoje <= data_devolucao <= prestes_a_vencer_limite and not emprestimo['atrasado']
+        
+        if emprestimo['atrasado']:
+            atrasados += 1
+        elif emprestimo['prestes_a_vencer']:
+            prestes_a_vencer += 1
+    
+    cursor.close()
+    conn.close()
+    return render_template('emprestimos_ativos.html', emprestimos=emprestimos, total_emprestimos=total_emprestimos,
+                          prestes_a_vencer=prestes_a_vencer, atrasados=atrasados)
 def setup():
     conn = get_db_connection()
     cursor = conn.cursor()
