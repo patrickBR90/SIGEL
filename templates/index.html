@@ -2,27 +2,63 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema SIGEL</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Sistema de Biblioteca</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">SIGEL</a>
-            <div class="navbar-nav">
-                <a class="nav-link" href="/alunos">Alunos</a>
-                <a class="nav-link" href="/livros">Livros</a>
-                <a class="nav-link" href="/emprestimos">Empréstimos</a>
-				<a class="nav-link" href="/logout">Sair</a>
-            </div>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="https://via.placeholder.com/24" alt="SIGEL">
+            <small>Sistema Integrado de Gerenciamento de Empréstimos de Livros para Bibliotecas Escolares</small>
+        </a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="/">Início</a>
+            <a class="nav-link" href="/livros">Livros</a>
+            <a class="nav-link" href="/alunos">Alunos</a>
+            <a class="nav-link" href="/emprestimos">Empréstimos</a>
+            <a class="nav-link" href="/emprestimos_ativos">Empréstimos Ativos</a>
+        </div>
+        <div class="user-info">
+            <span>{{ current_user.username }}</span>
+            <a href="/logout" class="btn-logout">Sair</a>
         </div>
     </nav>
-    <div class="container mt-4">
-        <h1>Bem-vindo ao SIGEL: Sistema Integrado de Gerenciamento de Empréstimos de Livros
-para Bibliotecas Escolares</h1>
-        <p>Utilize o menu acima para gerenciar alunos, livros e empréstimos.</p>
-		<p>Utilize Sair para o logout.<p>
+    <div class="container">
+        <h1>Bem-vindo ao SIGEL, {{ current_user.username }}!</h1>
+        <p>O Sistema Integrado de Gerenciamento de Empréstimos de Livros para Bibliotecas Escolares</p>
+        <div class="dashboard">
+            <div class="card card-livros">
+                <h3>Livros</h3>
+                <p>Gerenciamento do acervo da biblioteca</p>
+                <p>Total de livros: {{ total_livros }}</p>
+                <a href="/livros">Acessar gerenciamento de livros →</a>
+            </div>
+            <div class="card card-alunos">
+                <h3>Alunos</h3>
+                <p>Cadastre e gerencie os alunos</p>
+                <p>Total de alunos: {{ total_alunos }}</p>
+                <a href="/alunos">Acessar gerenciamento de alunos →</a>
+            </div>
+            <div class="card card-emprestimos">
+                <h3>Empréstimos</h3>
+                <p>Registro de empréstimos e devoluções</p>
+                <p>Total de empréstimos: {{ total_emprestimos }}</p>
+                <a href="/emprestimos">Acessar controle de empréstimos →</a>
+            </div>
+            <div class="card card-ativos">
+                <h3> Empréstimos Ativos</h3>
+                <p>Consulte os empréstimos em andamento</p>
+                <p>Prestes a vencer: {{ prestes_a_vencer }} | Atrasados: {{ atrasados }}</p>
+                <a href="/emprestimos_ativos">Ver empréstimos ativos →</a>
+            </div>
+        </div>
+        <div class="about">
+            <h2>Sobre o SIGEL</h2>
+            <p>O SIGEL é um sistema completo para gerenciamento de bibliotecas escolares, desenvolvido para facilitar o controle de empréstimos de livros. Com ele, você pode gerenciar todo o acervo, cadastrar alunos e controlar os empréstimos de forma simples e eficiente.</p>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <footer class="footer">
+        © 2025 Gerenciamento de Livros. Todos os direitos reservados.
+    </footer>
 </body>
 </html>

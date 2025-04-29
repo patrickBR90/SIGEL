@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Empréstimos Ativos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="https://via.placeholder.com/24" alt="SIGEL">
+            <small>Sistema Integrado de Gerenciamento de Empréstimos de Livros para Bibliotecas Escolares</small>
+        </a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="/">Início</a>
+            <a class="nav-link" href="/livros">Livros</a>
+            <a class="nav-link" href="/alunos">Alunos</a>
+            <a class="nav-link" href="/emprestimos">Empréstimos</a>
+            <a class="nav-link" href="/emprestimos_ativos">Empréstimos Ativos</a>
+        </div>
+        <div class="user-info">
+            <span>{{ current_user.username }}</span>
+            <a href="/logout" class="btn-logout">Sair</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>Empréstimos Ativos <small>Monitore e gerencie os empréstimos em andamento</small></h1>
+        <div class="dashboard">
+            <div class="card card-emprestimos">
+                <h3>Total</h3>
+                <p>Empréstimos ativos totais</p>
+                <p style="font-size: 24px; color: #2c3e50;">{{ total_emprestimos }}</p>
+            </div>
+            <div class="card card-prestes-vencer" style="background-color: #fff4e8;">
+                <h3>Prestes a vencer</h3>
+                <p>Empréstimos próximos do prazo final</p>
+                <p style="font-size: 24px; color: #e67e22;">{{ prestes_a_vencer }}</p>
+            </div>
+            <div class="card card-atrasados" style="background-color: #ffe8e8;">
+                <h3>Atrasados</h3>
+                <p>Empréstimos com prazo expirado</p>
+                <p style="font-size: 24px; color: #e74c3c;">{{ atrasados }}</p>
+            </div>
+        </div>
+        <div class="search-bar">
+            <input type="text" placeholder="Buscar por aluno ou livro...">
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Aluno</th>
+                    <th>Livro</th>
+                    <th>Data Empréstimo</th>
+                    <th>Prazo</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emprestimo in emprestimos %}
+                <tr>
+                    <td>{{ emprestimo.nome }}<br>{{ emprestimo.serie if emprestimo.serie else '6º Ano' }}</td>
+                    <td>{{ emprestimo.titulo }}</td>
+                    <td>{{ emprestimo.data_emprestimo }}</td>
+                    <td>{{ emprestimo.data_devolucao }}</td>
+                    <td>
+                        {% if emprestimo.atrasado %}
+                        <span class="status" style="background-color: #e74c3c;">Atrasado</span>
+                        {% elif emprestimo.prestes_a_vencer %}
+                        <span class="status" style="background-color: #e67e22;">Prestes a Vencer</span>
+                        {% else %}
+                        <span class="status status-emprestado">No Prazo</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a href="{{ url_for('devolver_emprestimo', id=emprestimo.id) }}" class="btn-return" onclick="return confirm('Tem certeza que deseja marcar como devolvido?')">Devolver</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p>Lista de empréstimos ativos na biblioteca</p>
+    </div>
+    <footer class="footer">
+        © 2025 Gerenciamento de Livros. Todos os direitos reservados.
+    </footer>
+</body>
+</html>
