@@ -1,51 +1,174 @@
-instale: python , MySQL.
+Instruções para Configuração e Execução do Aplicativo SIGEL (Sistema Integrado de Gerenciamento de Empréstimos de Livros)
 
-Python: https://www.python.org/downloads/
+Este documento contém instruções passo a passo para configurar e executar o aplicativo SIGEL pela primeira vez. Certifique-se de que você tem todos os arquivos do projeto (app.py, templates, setup.sql, etc.) antes de começar.
 
-MySQL: https://dev.mysql.com/downloads/installer/
+---
 
+### Pré-requisitos
+Antes de iniciar, você precisa ter o seguinte instalado em seu sistema:
+1. **Python 3.7 ou superior**:
+   - Verifique a versão do Python com o comando: `python --version` ou `python3 --version`.
+   - Se não estiver instalado, baixe e instale a partir de: https://www.python.org/downloads/
 
-configure o MySQL com MySQL workbench e abra o arquivo “NEWsgi.sql”
+2. **MySQL**:
+   - Certifique-se de que o MySQL está instalado e funcionando.
+   - Você pode baixar o MySQL em: https://dev.mysql.com/downloads/
+   - Verifique se o servidor MySQL está rodando com o comando: `mysql --version`.
 
+### Passo 1: Configurar o Ambiente Virtual (Opcional, mas Recomendado)
+Um ambiente virtual isola as dependências do projeto, evitando conflitos com outros projetos.
 
-Abra o CMD e:
+1. Crie um ambiente virtual na pasta do projeto:
+   - No Windows: `python -m venv venv`
+   - No Linux/Mac: `python3 -m venv venv`
 
-mkdir SIGEL
+2. Ative o ambiente virtual:
+   - No Windows: `venv\Scripts\activate`
+   - No Linux/Mac: `source venv/bin/activate`
 
-cd SIGEL
+   Após ativar, você verá o nome do ambiente virtual (venv) no início da linha de comando.
 
-python -m venv venv
+---
 
+### Passo 2: Instalar as Dependências
+O projeto requer algumas bibliotecas Python. Certifique-se de estar na pasta do projeto e com o ambiente virtual ativado (se usado).
 
-no desktop: faça o download do repositório e coloque os arquivos na raiz do diretório( /SIGEL)
+1. Instale as dependências listadas abaixo:
 
+pip install flask flask-login mysql-connector-python python-dotenv bcrypt
 
-crie um arquivo de texto chamado .env
+### Passo 3: Configurar o Banco de Dados MySQL
+O aplicativo usa um banco de dados MySQL para armazenar informações de usuários, alunos, livros e empréstimos.
 
-e coloque:
-
-MYSQL_HOST=localhost
-MYSQL_USER=YYYY
-MYSQL_PASSWORD=XXXX
-MYSQL_DATABASE=sig
-
-
-
-Y= usuario do MySQL admin; 
-X=Senha do MySQL admin
-
-
-no CMD:
-
-cd SIGEL
-
-.venv\Scripts\activate
-
-python app.py
-
+1. Crie um arquivo `.env` na raiz do projeto com as credenciais do MySQL. Exemplo:
 
 
-e acesse a página em um navegador web: http://127.0.0.1:5000/setup
+   MYSQL_HOST=localhost
+   MYSQL_USER=seu_usuario
+   MYSQL_PASSWORD=sua_senha
+   MYSQL_DATABASE=sig
 
-Utilize: admin/admin123 para o login inicial.
+- Substitua `seu_usuario` e `sua_senha` pelas suas credenciais do MySQL.
+- O nome do banco de dados (`sig`) será criado no próximo passo.
+
+2. Execute o script SQL para criar o banco de dados e as tabelas:
+- Certifique-se de que o servidor MySQL está rodando.
+- Execute o arquivo `setup.sql` com o seguinte comando no terminal:
+  ```
+  mysql -u seu_usuario -p < setup.sql
+  ```
+  - Substitua `seu_usuario` pelo seu usuário do MySQL.
+  - Você será solicitado a inserir a senha do MySQL.
+
+- Alternativamente, se preferir usar o MySQL Workbench ou outro cliente MySQL:
+  1. Abra o MySQL Workbench.
+  2. Copie e cole o conteúdo do arquivo `NEWsig.sql`.
+  3. Execute o script.
+
+3. **Nota sobre o Usuário Admin**:
+- O arquivo `setup.sql` inclui a inserção de um usuário admin com username `admin` e senha `admin123`.
+- No entanto, a senha no arquivo é um placeholder (`$2b$12$Kixz7vJ9z7l5Xz7p8vJ9z7u5Xz7p8vJ9z7l5Xz7p8vJ9z7l5Xz7p`).
+- Para usar a senha correta, você precisa gerar o hash da senha `admin123` com bcrypt e substituir no arquivo `setup.sql`. Siga estas etapas:
+  1. Abra um terminal Python (com o ambiente virtual ativado).
+  2. Execute o seguinte código:
+     ```
+     import bcrypt
+     password = 'admin123'
+     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+     print(hashed_password.decode('utf-8'))
+     ```
+  3. Copie o hash gerado.
+  4. Abra o arquivo `setup.sql` e substitua o valor do campo `password` no `INSERT INTO usuarios` pelo hash gerado.
+  5. Reexecute o script `setup.sql` (se já o executou, primeiro drope o banco de dados com `DROP DATABASE biblioteca;` e então reexecute).
+
+- Alternativamente, você pode usar a rota `/setup` no aplicativo para criar o usuário admin (veja o Passo 5).
+
+### Passo 4: Verificar a Estrutura do Projeto
+Certifique-se de que a estrutura do projeto está correta. Você deve ter os seguintes arquivos e pastas:
+
+- `app.py`: Arquivo principal do aplicativo.
+- `templates/`: Pasta contendo os arquivos HTML:
+  - `index.html`
+  - `login.html`
+  - `alunos.html`
+  - `livros.html`
+  - `emprestimos.html`
+  - `emprestimos_ativos.html`
+- `static/`: Pasta contendo os arquivos estáticos (CSS, JS, imagens, etc.):
+  - `css/styles.css`
+- `setup.sql`: Arquivo SQL para configurar o banco de dados.
+- `.env`: Arquivo com as variáveis de ambiente (criado no Passo 3).
+
+---
+
+### Passo 5: Executar o Aplicativo
+Agora que o ambiente está configurado e o banco de dados foi criado, você pode executar o aplicativo.
+
+1. Certifique-se de que está na pasta do projeto e com o ambiente virtual ativado (se usado).
+
+2. Execute o aplicativo:
+
+   python app.py
+
+3. O servidor Flask será iniciado. Você verá uma mensagem como:
+
+Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+
+
+4. Abra o navegador e acesse: `http://127.0.0.1:5000/`
+
+5. **Criar o Usuário Admin (se não criado via setup.sql)**:
+- Acesse a rota `/setup` no navegador: `http://127.0.0.1:5000/setup`
+- Isso criará o usuário `admin` com a senha `admin123`.
+- Você verá uma mensagem de confirmação: "Usuário admin criado com sucesso! Use: admin / admin123".
+
+6: Fazer Login e Testar o Aplicativo
+
+1. Acesse a página de login: `http://127.0.0.1:5000/login`
+2. Faça login com as credenciais:
+- Username: `admin`
+- Senha: `admin123`
+
+3. Explore as funcionalidades do aplicativo:
+- **Início**: Veja os contadores de livros, alunos e empréstimos.
+- **Livros**: Cadastre, edite e exclua livros.
+- **Alunos**: Cadastre, edite e exclua alunos.
+- **Empréstimos**: Registre novos empréstimos e devolva livros.
+- **Empréstimos Ativos**: Monitore os empréstimos em andamento, incluindo os prestes a vencer e atrasados.
+
+---
+
+### Solução de Problemas Comuns
+1. **Erro de Conexão com o MySQL**:
+- Verifique se o servidor MySQL está rodando.
+- Confirme que as credenciais no arquivo `.env` estão corretas.
+- Certifique-se de que o banco de dados `biblioteca` foi criado corretamente.
+
+2. **Erro ao Fazer Login**:
+- Se o usuário admin não foi criado corretamente, acesse a rota `/setup` novamente ou verifique o hash da senha no arquivo `setup.sql`.
+
+Boa sorte com o SIGEL!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
