@@ -205,7 +205,7 @@ def livros():
         status = 'Disponível'
         
         try:
-            cursor.executeeuro("INSERT INTO livros (titulo, autor, data_cadastro, status) VALUES (%s, %s, %s, %s)", 
+            cursor.execute("INSERT INTO livros (titulo, autor, data_cadastro, status) VALUES (%s, %s, %s, %s)", 
                           (titulo, autor, data_cadastro, status))
             conn.commit()
             flash('Livro cadastrado com sucesso!', 'success')
